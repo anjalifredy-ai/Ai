@@ -92,7 +92,7 @@ async function callOpenRouter(messages) {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "anthropic/claude-3.5-sonnet",
+      model: "openai/gpt-oss-120b:free",
       messages,
     }),
   });
