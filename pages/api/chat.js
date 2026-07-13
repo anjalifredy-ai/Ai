@@ -13,15 +13,15 @@ export default async function handler(req, res) {
     let reply;
 
     if (model === "flash") {
-      reply = await callGroq(messages);
+      reply = await callGroq(messages, "openai/gpt-oss-20b");
     } else if (model === "fast") {
       reply = await callGemini(messages);
     } else if (model === "medium") {
-      reply = await callDeepSeek(messages);
+      reply = await callOpenRouter(messages, "deepseek/deepseek-v4-flash:free");
     } else if (model === "pro") {
-      reply = await callOpenRouter(messages);
+      reply = await callGroq(messages, "openai/gpt-oss-120b");
     } else {
-      reply = await callGroq(messages);
+      reply = await callGroq(messages, "openai/gpt-oss-20b");
     }
 
     return res.status(200).json({ reply });
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function callGroq(messages) {
+async function callGroq(messages, groqModel) {
   const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -39,7 +39,7 @@ async function callGroq(messages) {
       Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: groqModel,
       messages,
     }),
   });
@@ -55,7 +55,7 @@ async function callGemini(messages) {
   }));
 
   const r = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -67,24 +67,7 @@ async function callGemini(messages) {
   return data.candidates[0].content.parts[0].text;
 }
 
-async function callDeepSeek(messages) {
-  const r = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "deepseek-chat",
-      messages,
-    }),
-  });
-  const data = await r.json();
-  if (!r.ok) throw new Error(data.error?.message || "DeepSeek API error");
-  return data.choices[0].message.content;
-}
-
-async function callOpenRouter(messages) {
+async function callOpenRouter(messages, orModel) {
   const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -92,7 +75,7 @@ async function callOpenRouter(messages) {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "openai/gpt-oss-120b:free",
+      model: orModel,
       messages,
     }),
   });
