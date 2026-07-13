@@ -26,11 +26,37 @@ export default function Home() {
     setInput("");
   }
 
-  function handleSend() {
+  async function handleSend() {
     if (!input.trim() || sending) return;
+
     const userMsg = { role: "user", content: input.trim() };
-    setMessages((prev) => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
+    setSending(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages, model: model.id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Something went wrong");
+      }
+
+      setMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `⚠️ ${err.message}` },
+      ]);
+    } finally {
+      setSending(false);
+    }
   }
 
   function handleKeyDown(e) {
@@ -106,7 +132,7 @@ export default function Home() {
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed ${
+                  className={`rounded-2xl px-4 py-2.5 max-w-[85%] text-sm leading-relaxed whitespace-pre-wrap ${
                     m.role === "user"
                       ? "bg-white text-gray-900"
                       : "bg-white/15 text-white"
@@ -116,6 +142,13 @@ export default function Home() {
                 </div>
               </div>
             ))}
+            {sending && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl px-4 py-2.5 bg-white/15 text-white text-sm">
+                  Thinking...
+                </div>
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
         )}
@@ -181,4 +214,4 @@ export default function Home() {
       </div>
     </div>
   );
-            }
+          }
